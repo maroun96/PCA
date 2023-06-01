@@ -11,19 +11,22 @@ rank = comm.Get_rank()
 
 n = 1000000
 m = 1000
+nsv = 200
 
-A = np.random.random(size=(n, m))
+# A = np.random.random(size=(n, m))
 
 Ap = PETSc.Mat()
 Ap.create()
-Ap.setSizes(A.shape)
+Ap.setSizes((n,m))
 Ap.setUp()
 
 i_start, i_end = Ap.getOwnershipRange()
-process_values = A[i_start:i_end, :]
+# process_values = A[i_start:i_end, :]
+
+process_values = np.random.random(size=(i_end-i_start, m))
 
 
-Ap.setValues(rows = range(i_start, i_end), cols = range(A.shape[1]), values=process_values)
+Ap.setValues(rows = range(i_start, i_end), cols = range(m), values=process_values)
 Ap.assemble()
 
 S = SLEPc.SVD()
@@ -31,7 +34,7 @@ S.create()
 S.setOperator(Ap)
 stype = SLEPc.SVD.Type.RANDOMIZED
 S.setType(stype)
-S.setDimensions(A.shape[0])
+S.setDimensions(nsv=nsv)
 S.solve()
 
 s_slepc = []
