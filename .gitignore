@@ -154,6 +154,7 @@ cython_debug/
 
 #slurm job scripts
 slurm*.sh
+slurm*.out
 
 #logging files
 log.dat
