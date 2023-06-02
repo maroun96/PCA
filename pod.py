@@ -11,9 +11,7 @@ rank = comm.Get_rank()
 
 n = 1000000
 m = 1000
-nsv = 200
 
-# A = np.random.random(size=(n, m))
 PETSc.Sys.Print("Assembling matrix", comm=comm)
 Ap = PETSc.Mat()
 Ap.create()
@@ -21,7 +19,6 @@ Ap.setSizes((n,m))
 Ap.setUp()
 
 i_start, i_end = Ap.getOwnershipRange()
-# process_values = A[i_start:i_end, :]
 
 process_values = np.random.random(size=(i_end-i_start, m))
 
@@ -33,30 +30,26 @@ PETSc.Sys.Print("Assembly done", comm=comm)
 
 B = Ap.transposeMatMult(Ap)
 
-PETSc.Sys.Print("Done", comm=comm)
+PETSc.Sys.Print("Multiplication Done", comm=comm)
 
-B.view()
+PETSc.Sys.Print("Solving Eigenvalue Problem", comm=comm)
 
-# S = SLEPc.SVD()
-# S.create()
-# S.setOperator(Ap)
-# stype = SLEPc.SVD.Type.LANCZOS
-# S.setType(stype)
-# S.setDimensions(nsv=nsv)
-# S.solve()
+EP = SLEPc.EPS()
+EP.create()
+EP.setOperators(B)
+eptype = SLEPc.EPS.Type.LAPACK
+EP.setType(eptype)
+EP.setDimensions(nev = m)
+EP.solve()
 
-# s_slepc = []
-# s_err = []
-# i=0
-# while i < S.getConverged():
-#     s_slepc.append(S.getValue(i))
-#     err = S.computeError(i)
-#     s_err.append(err)
-#     i += 1
+l_slepc = []
+i=0
+while i < EP.getConverged():
+    l_slepc.append(EP.getEigenvalue(i))
+    i += 1
+    PETSc.Sys.Print(f"iter: {i}", comm=comm)
 
-#     if rank==0:
-#         print(f"iter: {i}")
+PETSc.Sys.Print("Eigenvalues Done", comm=comm)
 
-# if rank == 0:
-#     print(f'Singular values (SLEPc {S.getType()}): ', s_slepc)
-#     # print('errors:', s_err)
+if rank == 0:
+    print(f'Eigenvalues (SLEPc {EP.getType()}): ', l_slepc)
