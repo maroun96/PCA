@@ -1,48 +1,48 @@
-import sys
-import csv
-from itertools import islice
-from itertools import tee
+from time import perf_counter
+from math import floor
 
-import numpy as np
-import petsc4py
-import petsc4py.PETSc as PETSc
+from mpi4py import MPI
+
+import pandas as pd
 
 
-def read_csv_parallel(filename, comm):
-    rank = comm.Get_rank()
-    size = comm.Get_size()
-
-    with open(filename, 'r') as file:
-        csv_reader = csv.reader(file)
-
-        csv_reader_count, csv_reader_data = tee(csv_reader)
-        row_count = sum(1 for _ in csv_reader_count)
-
-        row_start, row_end = compute_row_indices(row_count, rank=rank, size=size)
-
-        data = islice(csv_reader_data, row_start, row_end)
-
-        str2float = lambda str_input: float(str_input)
-        data_numeric = np.array([list(map(str2float, str_list)) for str_list in data])
-
-    return data_numeric
-
-
-def compute_row_indices(row_count, rank, size):
-    row_start = 1 + rank*((row_count-1) // size)
-    row_end = 1 + (rank+1)*((row_count-1) // size)
-    if rank == size-1: row_end = row_count
-
-    return row_start, row_end
-
-if __name__ == "__main__":  
-    comm = PETSc.COMM_WORLD
-    petsc4py.init(args=sys.argv, comm=comm)
-
-    rank = comm.Get_rank()
-    size = comm.Get_size()
+def compute_col_indices(col_count, rank, size):
+    col_start = floor(col_count*rank/size)
+    col_length = floor(col_count*(rank+1)/size) - floor(col_count*rank/size)
+    col_end = col_start + col_length
     
-    local_data = read_csv_parallel(filename="../XYZ_dambreak_table_1.csv", comm=comm)
+    return col_start, col_end
 
-    print(f"rank {rank}: {local_data.shape}")
+def read_csv_parallel(filename_list, col_count, comm):
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+
+    col_start, col_end = compute_col_indices(col_count=col_count, rank=rank, size=size)
+
+    local_filename_list = filename_list[col_start:col_end]
+
+    df_list = []
+
+    for filename in local_filename_list:
+        df = pd.read_csv(filename, engine="pyarrow")
+        df_list.append(df)
+    
+    return df_list
+
+
+
+if __name__ == "__main__":
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+
+    col_count = 100
+
+    filename_list = [f"/scratch/kmaroun/pod_files/snapshot{i}.csv" for i in range(1, 101)]
+
+    time_start = perf_counter()
+    _ = read_csv_parallel(filename_list=filename_list, col_count=100, comm=comm)
+    time_end = perf_counter()
+
+    print(f"rank {rank} - time elapsed: {time_end-time_start}")
     
