@@ -1,6 +1,6 @@
 # POD
 
-A small example that shows how to do the proper orthogonal decomposition of a matrix using petsc4py and slepc4py.
+An implementation of principal component analysis using petsc4py and slepc4py (work in progress).
 
 ## Installation
 
