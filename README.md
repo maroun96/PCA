@@ -22,5 +22,5 @@ The petsc4py library needs python and mpi4py as dependencies, so they will be in
 
 ## Running the script in parallel
 
-MPI with 4 processes: ```mpiexec -n 4 python pod.py``` 
+MPI with 4 processes: ```mpiexec -n 4 python pca.py``` 
 
