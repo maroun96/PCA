@@ -1,4 +1,4 @@
-# POD
+# PCA
 
 An implementation of principal component analysis using petsc4py and slepc4py (work in progress).
 
